@@ -35,7 +35,9 @@ const fortunes = [
   },
 ];
 
-const commands: Record<string, any> = {
+type CommandFn = (args: string[]) => React.ReactNode | string;
+
+const commands: Record<string, CommandFn | string> = {
   help: `Available commands: help, date, fortune, about, flip, ethgas, ethbalance [address], ethlatestblock, exit, clear`,
   date: () => new Date().toLocaleString(),
   fortune: () => {
@@ -115,14 +117,17 @@ export const Terminal = () => {
       return;
     }
 
-    if (commands[cmd]) {
+    if (cmd === "exit") {
+      const exitCmd = commands.exit;
+      newHistory.push({
+        type: "output",
+        content: typeof exitCmd === "function" ? exitCmd([]) : exitCmd,
+      });
+    } else if (commands[cmd]) {
+      const commandValue = commands[cmd];
       const result =
-        typeof commands[cmd] === "function"
-          ? commands[cmd](args)
-          : commands[cmd];
+        typeof commandValue === "function" ? commandValue(args) : commandValue;
       newHistory.push({ type: "output", content: result });
-    } else if (cmd === "exit") {
-      newHistory.push({ type: "output", content: commands.exit() });
     } else {
       newHistory.push({ type: "output", content: `Command not found: ${cmd}` });
     }
