@@ -1,12 +1,11 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import Image from "next/image";
 import { Cursor } from "./Cursor";
-
 import { EthGasPrice } from "./web3/eth-gas-price";
 import { EthBalance } from "./web3/eth-balance";
 import { LatestBlock } from "./web3/eth-latest-block";
-import Image from "next/image";
 
 interface TerminalLine {
   type: "command" | "output" | "prompt";
@@ -15,7 +14,7 @@ interface TerminalLine {
 
 const fortunes = [
   {
-    text: "If you dont like your destiny, dont accept it. Instead, have the courage to change it the way you want it to be.",
+    text: "If you dont like your destiny, dont accept it.",
     img: "/images/naruto.png",
   },
   {
@@ -23,11 +22,11 @@ const fortunes = [
     img: "/images/rocklee.png",
   },
   {
-    text: "If you really want to be strong… Stop caring about what your surrounding thinks of you!",
+    text: "If you really want to be strong… Stop caring about what others think!",
     img: "/images/saitama.png",
   },
   {
-    text: "Power comes in response to a need, not a desire. You have to create that need.",
+    text: "Power comes in response to a need, not a desire.",
     img: "/images/goku.png",
   },
   {
@@ -37,41 +36,21 @@ const fortunes = [
 ];
 
 const commands: Record<string, any> = {
-  help: `Available commands:
-- help
-- date
-- fortune
-- about
-- flip
-- ethgas
-- ethbalance [address]
-- ethlatestblock
-- exit
-- clear`,
-
+  help: `Available commands: help, date, fortune, about, flip, ethgas, ethbalance [address], ethlatestblock, exit, clear`,
   date: () => new Date().toLocaleString(),
-
   fortune: () => {
     const random = fortunes[Math.floor(Math.random() * fortunes.length)];
     return (
       <div className="flex items-center gap-2">
         <span>{random.text}</span>
-        <Image
-          src={random.img}
-          alt="author"
-          className="w-8 h-8 object-contain"
-        />
+        <Image src={random.img} alt="author" width={32} height={32} />
       </div>
     );
   },
-
   about: () => "Just a terminal website",
   "rm -rf /": () => "Nice try! This is a web terminal, not your actual system",
-
   ethgas: () => <EthGasPrice show={true} key={Date.now()} />,
-
   ethlatestblock: () => <LatestBlock show={true} key={Date.now()} />,
-
   ethbalance: (args: string[]) => {
     if (!args[0]) return "Usage: ethbalance [address]";
     return (
@@ -82,9 +61,8 @@ const commands: Record<string, any> = {
       />
     );
   },
-
   flip: () => {
-    const memeCoins = [
+    const coins = [
       {
         name: "$Bonk",
         address: "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
@@ -95,16 +73,15 @@ const commands: Record<string, any> = {
         address: "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
       },
     ];
-    const randomCoin = memeCoins[Math.floor(Math.random() * memeCoins.length)];
+    const random = coins[Math.floor(Math.random() * coins.length)];
     return (
       <div>
-        <span>{randomCoin.name}</span>
+        <span>{random.name}</span>
         <br />
-        <code>{randomCoin.address}</code>
+        <code>{random.address}</code>
       </div>
     );
   },
-
   exit: () => "There is no escape from the terminal...",
 };
 
@@ -117,61 +94,42 @@ export const Terminal = () => {
   const terminalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (terminalRef.current)
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    terminalRef.current?.scrollTo(0, terminalRef.current.scrollHeight);
   }, [history]);
 
-  const handleCommand = (command: string) => {
-    const trimmedCommand = command.trim();
-    if (!trimmedCommand) return;
+  const handleCommand = (cmdInput: string) => {
+    const trimmed = cmdInput.trim();
+    if (!trimmed) return;
 
-    const parts = trimmedCommand.split(" ");
+    const parts = trimmed.split(" ");
     const cmd = parts[0].toLowerCase();
     const args = parts.slice(1);
 
-    const newHistory: TerminalLine[] = [...history];
-    newHistory.push({ type: "command", content: `Ξ ~ → ${trimmedCommand}` });
+    const newHistory: TerminalLine[] = [
+      ...history,
+      { type: "command", content: `Ξ ~ → ${trimmed}` },
+    ];
 
     if (cmd === "clear") {
       setHistory([{ type: "prompt", content: "Ξ ~ → input 'help' command" }]);
       return;
     }
 
-    if (cmd === "exit") {
-      newHistory.push({ type: "output", content: commands.exit() });
-      newHistory.push({ type: "prompt", content: "Ξ ~ → " });
-      setHistory(newHistory);
-      return;
-    }
-
-    if (commands[cmd] !== undefined) {
-      const commandValue = commands[cmd];
-      let result;
-      if (typeof commandValue === "function") {
-        result = commandValue(args);
-      } else {
-        result = commandValue;
-      }
+    if (commands[cmd]) {
+      const result =
+        typeof commands[cmd] === "function"
+          ? commands[cmd](args)
+          : commands[cmd];
       newHistory.push({ type: "output", content: result });
+    } else if (cmd === "exit") {
+      newHistory.push({ type: "output", content: commands.exit() });
     } else {
-      newHistory.push({
-        type: "output",
-        content: `Command not found: ${cmd}. Type 'help' for available commands.`,
-      });
+      newHistory.push({ type: "output", content: `Command not found: ${cmd}` });
     }
 
     newHistory.push({ type: "prompt", content: "Ξ ~ → " });
     setHistory(newHistory);
   };
-
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter") {
-      handleCommand(currentInput);
-      setCurrentInput("");
-    }
-  };
-
-  const handleTerminalClick = () => inputRef.current?.focus();
 
   return (
     <div className="mt-10 w-full max-w-5xl mx-auto bg-black border border-green-500/40 rounded-lg shadow-[0_0_20px_rgba(0,255,65,0.3)] overflow-hidden">
@@ -189,10 +147,10 @@ export const Terminal = () => {
       <div
         ref={terminalRef}
         className="bg-black text-sm font-mono p-4 h-96 overflow-y-auto cursor-text text-green-400"
-        onClick={handleTerminalClick}
+        onClick={() => inputRef.current?.focus()}
       >
-        {history.map((line, index) => (
-          <div key={index} className="mb-1">
+        {history.map((line, idx) => (
+          <div key={idx} className="mb-1">
             {line.type === "command" && (
               <div className="text-green-500">{line.content}</div>
             )}
@@ -201,7 +159,7 @@ export const Terminal = () => {
                 {line.content}
               </div>
             )}
-            {line.type === "prompt" && index === history.length - 1 && (
+            {line.type === "prompt" && idx === history.length - 1 && (
               <div className="flex items-center gap-1">
                 <span className="text-green-500">{line.content}</span>
                 <div className="relative flex-1">
@@ -214,14 +172,17 @@ export const Terminal = () => {
                     type="text"
                     value={currentInput}
                     onChange={(e) => setCurrentInput(e.target.value)}
-                    onKeyDown={handleKeyPress}
+                    onKeyDown={(e) =>
+                      e.key === "Enter" &&
+                      (handleCommand(currentInput), setCurrentInput(""))
+                    }
                     className="bg-transparent border-none outline-none text-transparent caret-transparent flex-1"
                     autoFocus
                   />
                 </div>
               </div>
             )}
-            {line.type === "prompt" && index !== history.length - 1 && (
+            {line.type === "prompt" && idx !== history.length - 1 && (
               <div className="text-green-500">{line.content}</div>
             )}
           </div>

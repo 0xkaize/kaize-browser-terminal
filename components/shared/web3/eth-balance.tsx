@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { client } from "./client/client";
 import { formatEther } from "viem";
 
@@ -10,16 +10,17 @@ interface EthBalanceProps {
 }
 
 export const EthBalance = ({ address, show }: EthBalanceProps) => {
-  const [balance, setBalance] = React.useState<string>("");
+  const [balance, setBalance] = useState<string>("");
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!show) return;
 
     const fetchBalance = async () => {
       try {
         const bal = await client.getBalance({ address });
         setBalance(formatEther(bal));
-      } catch (_err) {
+      } catch (err) {
+        console.error(err);
         setBalance("Error fetching balance");
       }
     };
@@ -30,7 +31,7 @@ export const EthBalance = ({ address, show }: EthBalanceProps) => {
   if (!show) return null;
 
   return (
-    <p>
+    <p className="text-green-300">
       ETH Balance for {address}: {balance} ETH
     </p>
   );
